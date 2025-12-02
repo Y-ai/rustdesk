@@ -1908,6 +1908,10 @@ impl Connection {
     }
 
     pub fn permission(enable_prefix_option: &str) -> bool {
+        // Force disable file transfer - cannot be overridden by client
+        if enable_prefix_option == keys::OPTION_ENABLE_FILE_TRANSFER {
+            return false;
+        }
         #[cfg(feature = "flutter")]
         #[cfg(not(any(target_os = "android", target_os = "ios")))]
         {

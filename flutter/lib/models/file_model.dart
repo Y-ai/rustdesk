@@ -506,6 +506,10 @@ class FileController {
   /// sendFiles from current side (FileController.isLocal) to other side (SelectedItems).
   Future<void> sendFiles(
       SelectedItems items, DirectoryData otherSideData) async {
+    // File transfer is disabled
+    debugPrint("File transfer is disabled. Request ignored.");
+    return;
+    
     /// ignore wrong items side status
     if (items.isLocal != isLocal) {
       return;

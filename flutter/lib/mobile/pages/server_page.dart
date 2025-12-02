@@ -599,8 +599,13 @@ class _PermissionCheckerState extends State<PermissionChecker> {
                   : serverModel.toggleService),
           PermissionRow(translate("Input Control"), serverModel.inputOk,
               serverModel.toggleInput),
-          PermissionRow(translate("Transfer file"), serverModel.fileOk,
-              serverModel.toggleFile),
+          // File transfer is disabled and cannot be enabled
+          SwitchListTile(
+              visualDensity: VisualDensity.compact,
+              contentPadding: EdgeInsets.all(0),
+              title: Text(translate("Transfer file")),
+              value: false, // Always disabled
+              onChanged: null), // Disabled - cannot be changed
           hasAudioPermission
               ? PermissionRow(translate("Audio Capture"), serverModel.audioOk,
                   serverModel.toggleAudio)

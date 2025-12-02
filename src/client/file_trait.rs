@@ -129,15 +129,19 @@ pub trait FileManager: Interface {
         include_hidden: bool,
         is_remote: bool,
     ) {
-        self.send(Data::SendFiles((
-            id,
-            r#type.into(),
-            path,
-            to,
-            file_num,
-            include_hidden,
-            is_remote,
-        )));
+        // File transfer is disabled
+        log::warn!("File transfer is disabled. Request ignored: id={}, path={}", id, path);
+        return;
+        // Original code commented out:
+        // self.send(Data::SendFiles((
+        //     id,
+        //     r#type.into(),
+        //     path,
+        //     to,
+        //     file_num,
+        //     include_hidden,
+        //     is_remote,
+        // )));
     }
 
     fn add_job(
@@ -150,19 +154,27 @@ pub trait FileManager: Interface {
         include_hidden: bool,
         is_remote: bool,
     ) {
-        self.send(Data::AddJob((
-            id,
-            r#type.into(),
-            path,
-            to,
-            file_num,
-            include_hidden,
-            is_remote,
-        )));
+        // File transfer is disabled
+        log::warn!("File transfer is disabled. AddJob request ignored: id={}, path={}", id, path);
+        return;
+        // Original code commented out:
+        // self.send(Data::AddJob((
+        //     id,
+        //     r#type.into(),
+        //     path,
+        //     to,
+        //     file_num,
+        //     include_hidden,
+        //     is_remote,
+        // )));
     }
 
     fn resume_job(&self, id: i32, is_remote: bool) {
-        self.send(Data::ResumeJob((id, is_remote)));
+        // File transfer is disabled
+        log::warn!("File transfer is disabled. ResumeJob request ignored: id={}, is_remote={}", id, is_remote);
+        return;
+        // Original code commented out:
+        // self.send(Data::ResumeJob((id, is_remote)));
     }
 
     fn set_confirm_override_file(

@@ -568,188 +568,29 @@ impl<T: InvokeUiSession> Remote<T> {
                 allow_err!(peer.send(&msg).await);
             }
             Data::SendFiles((id, r#type, path, to, file_num, include_hidden, is_remote)) => {
-                log::info!("send files, is remote {}", is_remote);
-                let od = can_enable_overwrite_detection(self.handler.lc.read().unwrap().version);
-                if is_remote {
-                    log::debug!("New job {}, write to {} from remote {}", id, to, path);
-                    let to = match r#type {
-                        fs::JobType::Generic => fs::DataSource::FilePath(PathBuf::from(&to)),
-                        fs::JobType::Printer => {
-                            fs::DataSource::MemoryCursor(std::io::Cursor::new(Vec::new()))
-                        }
-                    };
-                    self.write_jobs.push(fs::TransferJob::new_write(
-                        id,
-                        r#type,
-                        path.clone(),
-                        to,
-                        file_num,
-                        include_hidden,
-                        is_remote,
-                        Vec::new(),
-                        od,
-                    ));
-                    allow_err!(
-                        peer.send(&fs::new_send(id, r#type, path, file_num, include_hidden))
-                            .await
-                    );
-                } else {
-                    match fs::TransferJob::new_read(
-                        id,
-                        r#type,
-                        to.clone(),
-                        fs::DataSource::FilePath(PathBuf::from(&path)),
-                        file_num,
-                        include_hidden,
-                        is_remote,
-                        od,
-                    ) {
-                        Err(err) => {
-                            self.handle_job_status(id, -1, Some(err.to_string()));
-                        }
-                        Ok(job) => {
-                            log::debug!(
-                                "New job {}, read {} to remote {}, {} files",
-                                id,
-                                path,
-                                to,
-                                job.files().len()
-                            );
-                            self.handler.update_folder_files(
-                                job.id(),
-                                job.files(),
-                                path,
-                                !is_remote,
-                                true,
-                            );
-                            #[cfg(not(windows))]
-                            let files = job.files().clone();
-                            #[cfg(windows)]
-                            let mut files = job.files().clone();
-                            #[cfg(windows)]
-                            if self.handler.peer_platform() != "Windows" {
-                                // peer is not windows, need transform \ to /
-                                fs::transform_windows_path(&mut files);
-                            }
-                            let total_size = job.total_size();
-                            self.read_jobs.push(job);
-                            self.timer = crate::rustdesk_interval(time::interval(MILLI1));
-                            allow_err!(
-                                peer.send(&fs::new_receive(id, to, file_num, files, total_size))
-                                    .await
-                            );
-                        }
-                    }
-                }
+                // File transfer is disabled
+                log::warn!("File transfer is disabled. Request ignored: id={}, path={}, is_remote={}", id, path, is_remote);
+                // Report error to handler
+                self.handle_job_status(id, -1, Some("File transfer is disabled".to_string()));
+                // Original code commented out:
+                // log::info!("send files, is remote {}", is_remote);
+                // let od = can_enable_overwrite_detection(self.handler.lc.read().unwrap().version);
+                // if is_remote {
+                //     ...
+                // } else {
+                //     ...
+                // }
             }
             Data::AddJob((id, r#type, path, to, file_num, include_hidden, is_remote)) => {
-                let od = can_enable_overwrite_detection(self.handler.lc.read().unwrap().version);
-                if is_remote {
-                    log::debug!(
-                        "new write waiting job {}, write to {} from remote {}",
-                        id,
-                        to,
-                        path
-                    );
-                    let mut job = fs::TransferJob::new_write(
-                        id,
-                        r#type,
-                        path.clone(),
-                        fs::DataSource::FilePath(PathBuf::from(&to)),
-                        file_num,
-                        include_hidden,
-                        is_remote,
-                        Vec::new(),
-                        od,
-                    );
-                    job.is_last_job = true;
-                    self.write_jobs.push(job);
-                } else {
-                    match fs::TransferJob::new_read(
-                        id,
-                        r#type,
-                        to.clone(),
-                        fs::DataSource::FilePath(PathBuf::from(&path)),
-                        file_num,
-                        include_hidden,
-                        is_remote,
-                        od,
-                    ) {
-                        Err(err) => {
-                            self.handle_job_status(id, -1, Some(err.to_string()));
-                        }
-                        Ok(mut job) => {
-                            log::debug!(
-                                "new read waiting job {}, read {} to remote {}, {} files",
-                                id,
-                                path,
-                                to,
-                                job.files().len()
-                            );
-                            self.handler.update_folder_files(
-                                job.id(),
-                                job.files(),
-                                path,
-                                !is_remote,
-                                true,
-                            );
-                            job.is_last_job = true;
-                            self.read_jobs.push(job);
-                            self.timer = crate::rustdesk_interval(time::interval(MILLI1));
-                        }
-                    }
-                }
+                // File transfer is disabled
+                log::warn!("File transfer is disabled. AddJob request ignored: id={}, path={}, is_remote={}", id, path, is_remote);
+                self.handle_job_status(id, -1, Some("File transfer is disabled".to_string()));
+                // Original code commented out
             }
             Data::ResumeJob((id, is_remote)) => {
-                if is_remote {
-                    if let Some(job) = get_job(id, &mut self.write_jobs) {
-                        job.is_last_job = false;
-                        job.is_resume = true;
-                        allow_err!(
-                            peer.send(&fs::new_send(
-                                id,
-                                fs::JobType::Generic,
-                                job.remote.clone(),
-                                job.file_num,
-                                job.show_hidden
-                            ))
-                            .await
-                        );
-                    }
-                } else {
-                    if let Some(job) = get_job(id, &mut self.read_jobs) {
-                        match &job.data_source {
-                            fs::DataSource::FilePath(_p) => {
-                                job.is_last_job = false;
-                                job.is_resume = true;
-                                job.set_finished_size_on_resume();
-                                #[cfg(not(windows))]
-                                let files = job.files().clone();
-                                #[cfg(windows)]
-                                let mut files = job.files().clone();
-                                #[cfg(windows)]
-                                if self.handler.peer_platform() != "Windows" {
-                                    // peer is not windows, need transform \ to /
-                                    fs::transform_windows_path(&mut files);
-                                }
-                                allow_err!(
-                                    peer.send(&fs::new_receive(
-                                        id,
-                                        job.remote.clone(),
-                                        job.file_num,
-                                        files,
-                                        job.total_size(),
-                                    ))
-                                    .await
-                                );
-                            }
-                            fs::DataSource::MemoryCursor(_) => {
-                                // unreachable!()
-                                log::error!("Resume job with memory cursor");
-                            }
-                        }
-                    }
-                }
+                // File transfer is disabled
+                log::warn!("File transfer is disabled. ResumeJob request ignored: id={}, is_remote={}", id, is_remote);
+                // Original code commented out
             }
             Data::SetNoConfirm(id) => {
                 if let Some(job) = self.remove_jobs.get_mut(&id) {

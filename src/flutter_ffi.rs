@@ -721,17 +721,20 @@ pub fn session_send_files(
     is_remote: bool,
     _is_dir: bool,
 ) {
-    if let Some(session) = sessions::get_session_by_session_id(&session_id) {
-        session.send_files(
-            act_id,
-            fs::JobType::Generic.into(),
-            path,
-            to,
-            file_num,
-            include_hidden,
-            is_remote,
-        );
-    }
+    // File transfer is disabled
+    log::warn!("File transfer is disabled. Request ignored: session_id={:?}, act_id={}, path={}", session_id, act_id, path);
+    // Original code commented out:
+    // if let Some(session) = sessions::get_session_by_session_id(&session_id) {
+    //     session.send_files(
+    //         act_id,
+    //         fs::JobType::Generic.into(),
+    //         path,
+    //         to,
+    //         file_num,
+    //         include_hidden,
+    //         is_remote,
+    //     );
+    // }
 }
 
 pub fn session_set_confirm_override_file(
@@ -963,6 +966,12 @@ pub fn main_show_option(_key: String) -> SyncReturn<bool> {
 }
 
 pub fn main_set_option(key: String, value: String) {
+    // Force disable file transfer - prevent client from enabling it
+    if key.eq(config::keys::OPTION_ENABLE_FILE_TRANSFER) {
+        // Always set to "N" regardless of what client tries to set
+        set_option(key, "N".to_string());
+        return;
+    }
     #[cfg(target_os = "android")]
     if key.eq(config::keys::OPTION_ENABLE_KEYBOARD) {
         crate::ui_cm_interface::switch_permission_all(
@@ -1010,7 +1019,9 @@ pub fn main_get_options_sync() -> SyncReturn<String> {
 }
 
 pub fn main_set_options(json: String) {
-    let map: HashMap<String, String> = serde_json::from_str(&json).unwrap_or(HashMap::new());
+    let mut map: HashMap<String, String> = serde_json::from_str(&json).unwrap_or(HashMap::new());
+    // Force disable file transfer - prevent client from enabling it
+    map.insert(config::keys::OPTION_ENABLE_FILE_TRANSFER.to_string(), "N".to_string());
     if !map.is_empty() {
         set_options(map)
     }

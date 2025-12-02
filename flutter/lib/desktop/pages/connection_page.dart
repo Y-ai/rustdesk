@@ -535,10 +535,7 @@ class _ConnectionPageState extends State<ConnectionPage>
                                   context: context,
                                   position: RelativeRect.fromLTRB(x, y, x, y),
                                   items: [
-                                    (
-                                      'Transfer file',
-                                      () => onConnect(isFileTransfer: true)
-                                    ),
+                                    // File transfer option removed - disabled by server
                                     (
                                       'View camera',
                                       () => onConnect(isViewCamera: true)

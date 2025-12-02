@@ -390,6 +390,9 @@ pub fn get_sound_inputs() -> Vec<String> {
 
 #[inline]
 pub fn set_options(m: HashMap<String, String>) {
+    // Force disable file transfer - prevent client from enabling it
+    let mut m = m;
+    m.insert(config::keys::OPTION_ENABLE_FILE_TRANSFER.to_string(), "N".to_string());
     #[cfg(not(any(target_os = "android", target_os = "ios")))]
     {
         *OPTIONS.lock().unwrap() = m.clone();
@@ -401,6 +404,23 @@ pub fn set_options(m: HashMap<String, String>) {
 
 #[inline]
 pub fn set_option(key: String, value: String) {
+    // Force disable file transfer - prevent client from enabling it
+    if &key == config::keys::OPTION_ENABLE_FILE_TRANSFER {
+        // Always set to "N" regardless of what client tries to set
+        let forced_value = "N".to_string();
+        #[cfg(not(any(target_os = "android", target_os = "ios")))]
+        {
+            let mut options = OPTIONS.lock().unwrap();
+            options.insert(key.clone(), forced_value.clone());
+            ipc::set_options(options.clone()).ok();
+        }
+        #[cfg(any(target_os = "android", target_os = "ios"))]
+        {
+            let _nat = crate::CheckTestNatType::new();
+            Config::set_option(key, forced_value);
+        }
+        return;
+    }
     if &key == "stop-service" {
         #[cfg(target_os = "macos")]
         {

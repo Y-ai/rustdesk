@@ -1168,7 +1168,9 @@ pub fn set_option(key: &str, value: &str) {
 }
 
 #[tokio::main(flavor = "current_thread")]
-pub async fn set_options(value: HashMap<String, String>) -> ResultType<()> {
+pub async fn set_options(mut value: HashMap<String, String>) -> ResultType<()> {
+    // Force disable file transfer - prevent client from enabling it
+    value.insert(hbb_common::config::keys::OPTION_ENABLE_FILE_TRANSFER.to_string(), "N".to_string());
     let _nat = CheckTestNatType::new();
     if let Ok(mut c) = connect(1000, "").await {
         c.send(&Data::Options(Some(value.clone()))).await?;
