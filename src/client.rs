@@ -1107,24 +1107,27 @@ impl ClientClipboardHandler {
             #[cfg(feature = "unix-file-copy-paste")]
             if let Some(urls) = check_clipboard_files(&mut self.ctx, ClipboardSide::Client, false) {
                 if !urls.is_empty() {
-                    #[cfg(target_os = "macos")]
-                    if crate::clipboard::is_file_url_set_by_rustdesk(&urls) {
-                        return;
-                    }
-                    if self.is_file_required() {
-                        match clipboard::platform::unix::serv_files::sync_files(&urls) {
-                            Ok(()) => {
-                                let msg = crate::clipboard_file::clip_2_msg(
-                                    unix_file_clip::get_format_list(),
-                                );
-                                self.send_msg(msg, true);
-                            }
-                            Err(e) => {
-                                log::error!("Failed to sync clipboard files: {}", e);
-                            }
-                        }
-                        return;
-                    }
+                    // File transfer via clipboard is disabled
+                    log::warn!("File transfer via clipboard is disabled. Clipboard file copy ignored.");
+                    // Original code commented out:
+                    // #[cfg(target_os = "macos")]
+                    // if crate::clipboard::is_file_url_set_by_rustdesk(&urls) {
+                    //     return;
+                    // }
+                    // if self.is_file_required() {
+                    //     match clipboard::platform::unix::serv_files::sync_files(&urls) {
+                    //         Ok(()) => {
+                    //             let msg = crate::clipboard_file::clip_2_msg(
+                    //                 unix_file_clip::get_format_list(),
+                    //             );
+                    //             self.send_msg(msg, true);
+                    //         }
+                    //         Err(e) => {
+                    //             log::error!("Failed to sync clipboard files: {}", e);
+                    //         }
+                    //     }
+                    //     return;
+                    // }
                 }
             }
 

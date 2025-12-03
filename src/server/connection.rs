@@ -4198,30 +4198,26 @@ impl Connection {
 
     #[cfg(feature = "unix-file-copy-paste")]
     async fn handle_file_clip(&mut self, clip: clipboard::ClipboardFile) {
-        let is_stopping_allowed = clip.is_stopping_allowed();
-        let file_transfer_enabled = self.file_transfer_enabled();
-        let stop = is_stopping_allowed && !file_transfer_enabled;
-        log::debug!(
-            "Process clipboard message from clip, stop: {}, is_stopping_allowed: {}, file_transfer_enabled: {}",
-            stop, is_stopping_allowed, file_transfer_enabled);
-        if !stop {
-            use hbb_common::config::keys::OPTION_ONE_WAY_FILE_TRANSFER;
-            // Note: Code will not reach here if `crate::get_builtin_option(OPTION_ONE_WAY_FILE_TRANSFER) == "Y"` is true.
-            // Because `file-clipboard` service will not be subscribed.
-            // But we still check it here to keep the same logic to windows version in `ui_cm_interface.rs`.
-            if clip.is_beginning_message()
-                && crate::get_builtin_option(OPTION_ONE_WAY_FILE_TRANSFER) == "Y"
-            {
-                // If one way file transfer is enabled, don't send clipboard file to client
-            } else {
-                // Maybe we should end the connection, because copy&paste files causes everything to wait.
-                allow_err!(
-                    self.stream
-                        .send(&crate::clipboard_file::clip_2_msg(clip))
-                        .await
-                );
-            }
-        }
+        // File transfer via clipboard is disabled
+        log::warn!("File transfer via clipboard is disabled. Server clipboard file message ignored.");
+        // Original code commented out:
+        // let is_stopping_allowed = clip.is_stopping_allowed();
+        // let file_transfer_enabled = self.file_transfer_enabled();
+        // let stop = is_stopping_allowed && !file_transfer_enabled;
+        // if !stop {
+        //     use hbb_common::config::keys::OPTION_ONE_WAY_FILE_TRANSFER;
+        //     if clip.is_beginning_message()
+        //         && crate::get_builtin_option(OPTION_ONE_WAY_FILE_TRANSFER) == "Y"
+        //     {
+        //         // If one way file transfer is enabled, don't send clipboard file to client
+        //     } else {
+        //         allow_err!(
+        //             self.stream
+        //                 .send(&crate::clipboard_file::clip_2_msg(clip))
+        //                 .await
+        //         );
+        //     }
+        // }
     }
 
     #[inline]

@@ -370,35 +370,37 @@ impl<T: InvokeUiSession> Remote<T> {
                     self.handler.msgbox(&r#type, &title, &text, "");
                 }
                 _ => {
-                    let is_stopping_allowed = clip.is_stopping_allowed();
-                    let server_file_transfer_enabled =
-                        *self.handler.server_file_transfer_enabled.read().unwrap();
-                    let file_transfer_enabled =
-                        self.handler.lc.read().unwrap().enable_file_copy_paste.v;
-                    let view_only = self.handler.lc.read().unwrap().view_only.v;
-                    let stop = is_stopping_allowed
-                        && (view_only
-                            || !self.is_connected
-                            || !(server_file_transfer_enabled && file_transfer_enabled));
-                    log::debug!(
-                        "Process clipboard message from system, stop: {}, is_stopping_allowed: {}, view_only: {}, server_file_transfer_enabled: {}, file_transfer_enabled: {}",
-                        view_only, stop, is_stopping_allowed, server_file_transfer_enabled, file_transfer_enabled
-                    );
-                    if stop {
-                        #[cfg(target_os = "windows")]
-                        {
-                            ContextSend::set_is_stopped();
-                        }
-                    } else {
-                        #[cfg(target_os = "windows")]
-                        if let Err(e) = ContextSend::make_sure_enabled() {
-                            log::error!("failed to restart clipboard context: {}", e);
-                            // to-do: Show msgbox with "Don't show again" option
-                        };
-                        log::debug!("Send system clipboard message to remote");
-                        let msg = crate::clipboard_file::clip_2_msg(clip);
-                        allow_err!(peer.send(&msg).await);
+                    // File transfer via clipboard is disabled
+                    log::warn!("File transfer via clipboard is disabled. Clipboard file message ignored.");
+                    #[cfg(target_os = "windows")]
+                    {
+                        ContextSend::set_is_stopped();
                     }
+                    // Original code commented out:
+                    // let is_stopping_allowed = clip.is_stopping_allowed();
+                    // let server_file_transfer_enabled =
+                    //     *self.handler.server_file_transfer_enabled.read().unwrap();
+                    // let file_transfer_enabled =
+                    //     self.handler.lc.read().unwrap().enable_file_copy_paste.v;
+                    // let view_only = self.handler.lc.read().unwrap().view_only.v;
+                    // let stop = is_stopping_allowed
+                    //     && (view_only
+                    //         || !self.is_connected
+                    //         || !(server_file_transfer_enabled && file_transfer_enabled));
+                    // if stop {
+                    //     #[cfg(target_os = "windows")]
+                    //     {
+                    //         ContextSend::set_is_stopped();
+                    //     }
+                    // } else {
+                    //     #[cfg(target_os = "windows")]
+                    //     if let Err(e) = ContextSend::make_sure_enabled() {
+                    //         log::error!("failed to restart clipboard context: {}", e);
+                    //     };
+                    //     log::debug!("Send system clipboard message to remote");
+                    //     let msg = crate::clipboard_file::clip_2_msg(clip);
+                    //     allow_err!(peer.send(&msg).await);
+                    // }
                 }
             },
             None => {
@@ -2095,13 +2097,14 @@ impl<T: InvokeUiSession> Remote<T> {
             return;
         };
 
-        let is_stopping_allowed = clip.is_beginning_message();
-        let file_transfer_enabled = self.handler.is_file_clipboard_required();
-        let stop = is_stopping_allowed && !file_transfer_enabled;
-        log::debug!(
-                "Process clipboard message from server peer, stop: {}, is_stopping_allowed: {}, file_transfer_enabled: {}",
-                stop, is_stopping_allowed, file_transfer_enabled);
-        if !stop {
+        // File transfer via clipboard is disabled
+        log::warn!("File transfer via clipboard is disabled. Clipboard file message from server ignored.");
+        // Original code commented out:
+        // let is_stopping_allowed = clip.is_beginning_message();
+        // let file_transfer_enabled = self.handler.is_file_clipboard_required();
+        // let stop = is_stopping_allowed && !file_transfer_enabled;
+        // if !stop {
+        if false {
             #[cfg(any(
                 target_os = "windows",
                 all(target_os = "macos", feature = "unix-file-copy-paste")
